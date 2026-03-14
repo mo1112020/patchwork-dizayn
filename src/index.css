@@ -1,0 +1,247 @@
+/* PATCHWORK DIZAYN Design System - Colorful Theme
+   Palette: FF7F11 (orange), ACBFA4 (sage), E2E8CE (cream), 262626 (dark), 23eae7 (cyan) */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Artisanal Palette: Base, Gold, Indigo, Rose */
+    --background: 40 33% 98%;      /* Warm Bone/Parchment */
+    --foreground: 222 47% 11%;     /* Deep Midnight Indigo */
+
+    --card: 40 25% 96%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 40 25% 96%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Deep Amber Gold - Craftsmanship & Luxury */
+    --primary: 38 90% 48%;
+    --primary-foreground: 40 33% 98%;
+
+    /* Deep Slate Indigo */
+    --secondary: 222 25% 92%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted Tones */
+    --muted: 40 15% 92%;
+    --muted-foreground: 222 10% 45%;
+
+    /* Persian Rose Accent */
+    --accent: 346 77% 45%;
+    --accent-foreground: 40 33% 98%;
+
+    /* Global States */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 70% 40%;
+    --success-foreground: 210 40% 98%;
+
+    --border: 222 15% 88%;
+    --input: 222 15% 88%;
+    --ring: 38 90% 48%;
+
+    /* Designer Canvas Tones */
+    --canvas-bg: 40 20% 94%;
+    --canvas-grid: 222 15% 90%;
+    --canvas-border: 222 15% 85%;
+
+    --radius: 1rem; /* Slightly softer corners for premium feel */
+
+    --sidebar-background: 40 25% 96%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 38 90% 48%;
+    --sidebar-primary-foreground: 40 33% 98%;
+    --sidebar-accent: 346 77% 45%;
+    --sidebar-accent-foreground: 40 33% 98%;
+    --sidebar-border: 222 15% 88%;
+    --sidebar-ring: 38 90% 48%;
+  }
+
+  .dark {
+    /* Deep Luxury Dark Mode */
+    --background: 240 10% 3.9%;   /* Midnight Zinc */
+    --foreground: 40 25% 98%;      /* Soft White */
+
+    --card: 240 10% 6%;
+    --card-foreground: 40 25% 98%;
+
+    --popover: 240 10% 6%;
+    --popover-foreground: 40 25% 98%;
+
+    --primary: 38 92% 55%;        /* Brighter Gold for Dark */
+    --primary-foreground: 240 10% 3.9%;
+
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 40 25% 98%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 346 80% 60%;       /* Vibrant Rose for Dark */
+    --accent-foreground: 40 25% 98%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 40 25% 98%;
+
+    --success: 142 70% 35%;
+    --success-foreground: 40 25% 98%;
+
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 38 92% 55%;
+
+    /* Dark Canvas Tones */
+    --canvas-bg: 240 10% 2%;
+    --canvas-grid: 240 4% 12%;
+    --canvas-border: 240 4% 15%;
+
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 40 25% 98%;
+    --sidebar-primary: 38 92% 55%;
+    --sidebar-primary-foreground: 240 10% 3.9%;
+    --sidebar-accent: 346 80% 60%;
+    --sidebar-accent-foreground: 40 25% 98%;
+    --sidebar-border: 240 4% 18%;
+    --sidebar-ring: 38 92% 55%;
+  }
+}
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .step {
+    counter-increment: step;
+  }
+
+  .step:before {
+    @apply absolute w-9 h-9 bg-muted rounded-full font-mono font-medium text-center text-base inline-flex items-center justify-center -indent-px border-4 border-background;
+    @apply ml-[-50px] mt-[-4px];
+    content: counter(step);
+  }
+}
+
+@layer components {
+  /* Navbar logo: no border, no background – just the image, big */
+  .navbar-logo-img {
+    height: 100px !important;
+    width: auto !important;
+    max-height: none !important;
+    display: block !important;
+    filter: none !important;
+    object-fit: contain;
+    vertical-align: middle;
+  }
+  @media (min-width: 640px) {
+    .navbar-logo-img {
+      height: 110px !important;
+    }
+  }
+  @media (min-width: 768px) {
+    .navbar-logo-img {
+      height: 140px !important;
+    }
+  }
+  .navbar-logo-wrap {
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  /* Footer logo: small, white for dark background */
+  .footer-logo-img {
+    height: 40px !important;
+    width: auto !important;
+    max-height: none !important;
+    display: block !important;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  @media (min-width: 640px) {
+    .footer-logo-img {
+      height: 48px !important;
+    }
+  }
+  /* Navbar: fully opaque so logo and bar never change appearance on scroll */
+  .navbar-solid-bg {
+    background: hsl(var(--card));
+  }
+
+  /* Single container width for navbar + all pages – aligned layout */
+  .page-container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 768px) {
+    .page-container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .panel {
+    @apply flex flex-col h-full overflow-hidden;
+  }
+
+  .panel-header {
+    @apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 px-0;
+  }
+
+  .panel-content {
+    @apply flex-1 overflow-y-auto pr-0.5;
+  }
+
+  .tool-btn {
+    @apply p-3 rounded-xl border border-border bg-background hover:bg-muted text-foreground transition-all duration-200 shadow-sm;
+  }
+
+  .tool-btn-active {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground border-primary shadow-lg shadow-primary/20 ring-2 ring-primary/20 scale-[1.02];
+  }
+
+  .color-swatch {
+    @apply w-10 h-10 rounded-full border-2 border-transparent transition-all duration-200 hover:scale-110 shadow-sm cursor-pointer;
+  }
+
+  .color-swatch-active {
+    @apply border-foreground scale-110 shadow-md ring-4 ring-foreground/10;
+  }
+
+  /* Scrollbar Customization for Wool Aesthetic */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+  }
+}

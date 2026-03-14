@@ -1,0 +1,6 @@
+project_id = "nfediqkmrxcmchzsgyik"
+
+# Allow admin-api to be called from browser without JWT (auth via x-admin-secret).
+# Required so OPTIONS preflight gets 200 and CORS works from localhost.
+[functions.admin-api]
+verify_jwt = false

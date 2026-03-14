@@ -1,0 +1,1 @@
+ALTER TABLE public.rug_textures ADD COLUMN category text NOT NULL DEFAULT 'Genel';

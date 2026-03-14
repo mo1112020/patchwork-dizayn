@@ -1,0 +1,1 @@
+ALTER TABLE public.designer_settings ADD COLUMN show_price boolean NOT NULL DEFAULT true;
