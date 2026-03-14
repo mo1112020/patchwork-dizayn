@@ -273,16 +273,30 @@ const Profile: React.FC = () => {
                                                                 </div>
                                                             </CardHeader>
                                                             <CardContent className="px-8 pb-8 pt-4 flex flex-col flex-1">
-                                                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                                                    <div className="bg-background/80 rounded-2xl p-4 border border-border/50 shadow-sm flex flex-col justify-center">
-                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-[0.15em] mb-1 opacity-60">{t('profile.totalArea')}</p>
-                                                                        <p className="text-lg font-black font-mono tracking-tight">{design.totalArea.toFixed(2)} m²</p>
-                                                                    </div>
-                                                                    <div className="bg-primary/[0.03] rounded-2xl p-4 border border-primary/10 shadow-sm flex flex-col justify-center">
-                                                                        <p className="text-[9px] text-primary uppercase font-black tracking-[0.15em] mb-1 opacity-70">{t('profile.price')}</p>
-                                                                        <p className="text-lg font-black font-mono tracking-tight text-primary">€{design.totalPrice.toFixed(2)}</p>
-                                                                    </div>
-                                                                </div>
+                                                                {(() => {
+                                                                    const designOrder = orders.find(o => o.design_id === design.id);
+                                                                    const confirmedPrice = designOrder && designOrder.status !== 'pending'
+                                                                        ? designOrder.design_snapshot?.totalPrice
+                                                                        : undefined;
+                                                                    return (
+                                                                        <div className="grid grid-cols-2 gap-4 mb-6">
+                                                                            <div className="bg-background/80 rounded-2xl p-4 border border-border/50 shadow-sm flex flex-col justify-center">
+                                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-[0.15em] mb-1 opacity-60">{t('profile.totalArea')}</p>
+                                                                                <p className="text-lg font-black font-mono tracking-tight">{design.totalArea.toFixed(2)} m²</p>
+                                                                            </div>
+                                                                            <div className="bg-primary/[0.03] rounded-2xl p-4 border border-primary/10 shadow-sm flex flex-col justify-center">
+                                                                                <p className="text-[9px] text-primary uppercase font-black tracking-[0.15em] mb-1 opacity-70">{t('profile.price')}</p>
+                                                                                {confirmedPrice != null ? (
+                                                                                    <p className="text-lg font-black font-mono tracking-tight text-primary">€{Number(confirmedPrice).toFixed(2)}</p>
+                                                                                ) : (
+                                                                                    <p className="text-xs font-bold text-muted-foreground opacity-50 italic">
+                                                                                        {designOrder ? t('orderStatusBadge.pending') : '—'}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                                 <Button className="w-full rounded-2xl font-black h-14 mt-auto shadow-sm group/btn relative overflow-hidden transition-all text-base" variant="secondary" onClick={() => navigate(`/designer?id=${design.id}`)}>
                                                                     <span className="relative z-10 flex items-center justify-center gap-2">
                                                                         {t('profile.editDesign')}

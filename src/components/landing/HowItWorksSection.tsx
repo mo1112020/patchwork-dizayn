@@ -18,7 +18,7 @@ export const HowItWorksSection: React.FC = React.memo(function HowItWorksSection
   const benefits = [t('howItWorks.benefit1'), t('howItWorks.benefit2'), t('howItWorks.benefit3'), t('howItWorks.benefit4')];
 
   return (
-    <section className="py-24 md:py-32 bg-foreground text-background relative overflow-hidden scroll-mt-16">
+    <section className="py-16 md:py-32 bg-foreground text-background relative overflow-hidden scroll-mt-16">
       <div className="absolute inset-0 bg-gradient-to-b from-foreground via-foreground/95 to-foreground" />
       <div className="absolute inset-0 opacity-[0.05]" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='currentColor' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41z'/%3E%3C/g%3E%3C/svg%3E")`,

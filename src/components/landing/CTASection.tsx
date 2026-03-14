@@ -10,7 +10,7 @@ export const CTASection: React.FC = React.memo(function CTASection() {
   const { t, locale } = useLanguage();
 
   return (
-    <section className="py-28 md:py-40 relative overflow-hidden scroll-mt-16">
+    <section className="py-16 md:py-40 relative overflow-hidden scroll-mt-16">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/[0.06] to-background pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(100%,600px)] h-[400px] bg-primary/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

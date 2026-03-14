@@ -73,8 +73,13 @@ export const useDesigns = () => {
       settings: design.settings || {},
     };
 
+    // Only reuse the existing ID when the current user owns the design.
+    // If the design was loaded from a shared link (different owner), generate a
+    // new ID so we INSERT a copy rather than trying to UPDATE someone else's row.
+    const ownedId = design.id && design.userId === user.id ? design.id : undefined;
+
     const designData: any = {
-      id: design.id || generateShortId(),
+      id: ownedId || generateShortId(),
       user_id: user.id,
       name: name || design.name || 'Untitled Design',
       width: design.width,

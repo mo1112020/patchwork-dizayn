@@ -289,7 +289,6 @@ const Designer: React.FC = () => {
         .then((savedDesign) => {
           if (savedDesign) {
             setDesign(savedDesign);
-            toast({ title: t('designer.designRestored'), description: t('designer.designRestoredDesc') });
           }
         })
         .finally(() => setIsLoadingDesign(false));
@@ -485,7 +484,7 @@ const Designer: React.FC = () => {
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden relative selection:bg-primary/20 pt-[80px]">
-      <main className="flex-1 flex gap-0 md:gap-3 py-0 md:py-3 px-0 md:px-3 overflow-hidden bg-muted/30 min-w-0 pb-[80px] md:pb-3">
+      <main className="flex-1 flex gap-0 md:gap-3 py-0 md:py-3 px-0 md:px-3 overflow-hidden bg-muted/30 min-w-0 pb-[72px] md:pb-3">
 
         {/* Left: Textures + thread color */}
         <motion.aside
@@ -542,24 +541,26 @@ const Designer: React.FC = () => {
         >
           <div className="flex-1 w-full h-full min-h-0 min-w-0 overflow-hidden md:rounded-2xl border-0 md:border-2 border-border bg-card shadow-none md:shadow-md ring-0 md:ring-1 md:ring-black/5 relative">
             {/* Mobile Floating Actions */}
-            <div className="lg:hidden absolute top-4 right-4 z-30 flex flex-col gap-2">
+            <div className="lg:hidden absolute top-3 right-3 z-30 flex gap-2">
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-10 w-10 rounded-full shadow-lg bg-card/80 backdrop-blur-md border border-border"
+                className="h-9 w-9 rounded-full shadow-md bg-card/90 backdrop-blur-md border border-border disabled:opacity-30"
                 disabled={!canUndo}
                 onClick={undo}
+                title={t('designer.undo')}
               >
-                <Undo2 size={18} />
+                <Undo2 size={16} />
               </Button>
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-10 w-10 rounded-full shadow-lg bg-card/80 backdrop-blur-md border border-border"
+                className="h-9 w-9 rounded-full shadow-md bg-card/90 backdrop-blur-md border border-border disabled:opacity-30"
                 disabled={!canRedo}
                 onClick={redo}
+                title={t('designer.redo')}
               >
-                <Redo2 size={18} />
+                <Redo2 size={16} />
               </Button>
             </div>
 
@@ -655,7 +656,7 @@ const Designer: React.FC = () => {
             initial={{ y: 240, opacity: 0 }}
             animate={trayVisible ? { y: 0, opacity: 1 } : { y: 240, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 34, mass: 0.75 }}
-            className="lg:hidden fixed bottom-[4.5rem] left-0 right-0 z-40 px-3 flex flex-col gap-2"
+            className="lg:hidden fixed bottom-[4.75rem] left-0 right-0 z-40 px-3 flex flex-col gap-2"
             style={{ pointerEvents: trayVisible ? 'auto' : 'none' }}
             aria-hidden={!trayVisible}
           >
@@ -675,32 +676,35 @@ const Designer: React.FC = () => {
       })()}
 
       {/* Mobile Navigation Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-xl border-t border-border z-40 flex items-center justify-around px-6 pb-safe">
-        <button
-          onClick={() => setShowMobileTextures(true)}
-          className={`flex flex-col items-center gap-1 transition-colors ${showMobileTextures ? 'text-primary' : 'text-muted-foreground'}`}
-        >
-          <Paintbrush className="w-5 h-5" />
-          <span className="text-[10px] font-medium">{t('designer.textures')}</span>
-        </button>
-
-        <div className="relative -top-3 flex flex-col items-center">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-around h-16 px-4">
           <button
-            onClick={() => setShowSetupDialog(true)}
-            className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 border-4 border-card"
+            onClick={() => setShowMobileTextures(true)}
+            className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-colors ${showMobileTextures ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            <Settings2 className="w-6 h-6" />
+            <Paintbrush className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">{t('designer.textures')}</span>
           </button>
-          <span className="text-[10px] font-bold text-primary mt-1 uppercase tracking-tighter bg-card/50 px-1 rounded">{t('designer.dimensions')}</span>
-        </div>
 
-        <button
-          onClick={() => setShowMobileSummary(true)}
-          className={`flex flex-col items-center gap-1 transition-colors ${showMobileSummary ? 'text-primary' : 'text-muted-foreground'}`}
-        >
-          <ShoppingCart className="w-5 h-5" />
-          <span className="text-[10px] font-medium">{t('pricePanel.designSummary')}</span>
-        </button>
+          <div className="relative -top-4 flex flex-col items-center">
+            <button
+              onClick={() => setShowSetupDialog(true)}
+              className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/40 flex items-center justify-center transition-all hover:scale-105 active:scale-95 border-4 border-card"
+            >
+              <Settings2 className="w-6 h-6" />
+            </button>
+            <span className="text-[9px] font-bold text-primary mt-0.5 uppercase tracking-tight">{t('designer.dimensions')}</span>
+          </div>
+
+          <button
+            onClick={() => setShowMobileSummary(true)}
+            className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-colors ${showMobileSummary ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">{t('pricePanel.designSummary')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Textures Sheet */}
@@ -813,10 +817,6 @@ const Designer: React.FC = () => {
               currentOrder={getLatestOrderForDesign(design.id)}
             />
 
-            <div className="mt-6 flex gap-3 p-3 rounded-2xl bg-muted/50 border border-border">
-              <Button variant="ghost" size="sm" className="flex-1 gap-2 h-10" disabled={!canUndo} onClick={undo}><Undo2 size={16} /> {t('designer.undo')}</Button>
-              <Button variant="ghost" size="sm" className="flex-1 gap-2 h-10" disabled={!canRedo} onClick={redo}><Redo2 size={16} /> {t('designer.redo')}</Button>
-            </div>
             <div className="h-20" /> {/* Spacer for safe area and flow */}
           </div>
         </SheetContent>

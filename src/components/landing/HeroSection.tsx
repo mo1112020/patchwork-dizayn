@@ -33,15 +33,15 @@ export const HeroSection: React.FC = () => {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='currentColor' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       }} />
 
-      <div className="page-container relative pt-32 pb-20">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+      <div className="page-container relative pt-24 pb-12 md:pt-32 md:pb-20">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20 items-center">
           {/* Left — Copy */}
           <div>
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 mb-8"
+              className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 mb-5 md:mb-8"
             >
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
@@ -53,7 +53,7 @@ export const HeroSection: React.FC = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black tracking-tight leading-[1.05] mb-7 text-foreground"
+              className="text-[2.4rem] sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black tracking-tight leading-[1.05] mb-4 md:mb-7 text-foreground"
             >
               {t('hero.titleLine1')}
               <br />
@@ -64,7 +64,7 @@ export const HeroSection: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-xl mb-10 leading-relaxed"
+              className="text-base md:text-xl text-muted-foreground max-w-xl mb-7 md:mb-10 leading-relaxed"
             >
               {t('hero.subtitle')}
             </motion.p>
@@ -73,11 +73,11 @@ export const HeroSection: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-start gap-4 mb-12"
+              className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 mb-8 md:mb-12"
             >
               <Button
                 size="lg"
-                className="h-14 px-10 text-base font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xl shadow-primary/20 transition-all duration-200 hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] group"
+                className="h-14 px-8 text-base font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xl shadow-primary/20 transition-all duration-200 hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] group w-full sm:w-auto justify-center"
                 onClick={() => navigate('/designer')}
               >
                 {t('hero.ctaStart')}
@@ -86,7 +86,7 @@ export const HeroSection: React.FC = () => {
               <Button
                 variant="outline"
                 size="lg"
-                className="h-14 px-8 text-base font-semibold border-border hover:bg-card rounded-xl group"
+                className="h-14 px-8 text-base font-semibold border-border hover:bg-card rounded-xl group w-full sm:w-auto justify-center"
                 onClick={() => navigate('/how-it-works')}
               >
                 <Play className="mr-2 w-4 h-4 text-primary fill-primary" />
@@ -99,7 +99,7 @@ export const HeroSection: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.45 }}
-              className="flex flex-wrap gap-x-10 gap-y-4 sm:gap-12"
+              className="flex flex-wrap gap-x-7 gap-y-3 sm:gap-x-12"
             >
               {[
                 { value: '2,500+', label: locale === 'tr' ? 'Tamamlanan Tasarım' : 'Designs Completed' },
@@ -107,8 +107,8 @@ export const HeroSection: React.FC = () => {
                 { value: '15+', label: locale === 'tr' ? 'Ülke' : 'Countries' },
               ].map((stat, i) => (
                 <div key={i} className="flex flex-col">
-                  <div className="text-2xl md:text-3xl font-black text-foreground tabular-nums">{stat.value}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 font-medium uppercase tracking-wider">{stat.label}</div>
+                  <div className="text-xl md:text-3xl font-black text-foreground tabular-nums">{stat.value}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 font-medium uppercase tracking-wider">{stat.label}</div>
                 </div>
               ))}
             </motion.div>

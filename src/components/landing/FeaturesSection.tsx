@@ -21,10 +21,10 @@ export const FeaturesSection: React.FC = React.memo(function FeaturesSection() {
   const features = featureKeys.map((f) => ({ ...f, icon: iconMap[f.iconKey] }));
 
   return (
-    <section className="py-24 md:py-32 scroll-mt-16">
+    <section className="py-16 md:py-32 scroll-mt-16">
       <div className="page-container">
         {/* Header */}
-        <div className="max-w-2xl mb-16 md:mb-20">
+        <div className="max-w-2xl mb-10 md:mb-20">
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -69,7 +69,7 @@ export const FeaturesSection: React.FC = React.memo(function FeaturesSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ delay: i * 0.06, duration: 0.4 }}
-                className={`group relative p-7 md:p-8 rounded-2xl border border-border bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden ${borderAccent} ${leftBorder} ${isLarge ? 'lg:col-span-2' : ''
+                className={`group relative p-5 md:p-8 rounded-2xl border border-border bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden ${borderAccent} ${leftBorder} ${isLarge ? 'lg:col-span-2' : ''
                   }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-accent/[0.04] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
