@@ -127,9 +127,12 @@ export const useDesigns = () => {
   }, []);
 
   const getDesigns = useCallback(async (): Promise<RugDesign[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
     const { data, error } = await supabase
       .from('designs')
       .select('*')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {
