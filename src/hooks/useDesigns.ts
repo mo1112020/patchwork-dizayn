@@ -164,6 +164,13 @@ export const useDesigns = () => {
   }, []);
 
   const deleteDesign = useCallback(async (id: string): Promise<void> => {
+    // Manually remove the reference in orders to avoid foreign key violations,
+    // in case the database constraint doesn't have ON DELETE SET NULL configured.
+    await supabase
+      .from('orders')
+      .update({ design_id: null })
+      .eq('design_id', id);
+
     const { error } = await supabase
       .from('designs')
       .delete()

@@ -337,7 +337,14 @@
       "noOrdersHint": "Henüz bir fiyat talebi veya sipariş oluşturmadınız.",
       "orderDate": "Sipariş Tarihi",
       "status": "Durum",
-      "trackingNumber": "Takip Numarası"
+      "trackingNumber": "Takip Numarası",
+      "cancel": "Vazgeç"
+    },
+    "orderNotifications": {
+      "priceSentTitle": "Fiyat Teklifiniz Hazır!",
+      "priceSentDesc": "Siparişiniz için fiyat teklifi gönderildi. Profilinizden görüntüleyebilirsiniz.",
+      "statusChangedTitle": "Sipariş Durumu Güncellendi",
+      "statusChangedDesc": "Siparişinizin yeni durumu:"
     },
     "faq": {
       "title": "Sıkça Sorulan Sorular",
@@ -1039,7 +1046,14 @@
       "noOrdersHint": "You haven't requested any prices or placed any orders yet.",
       "orderDate": "Order Date",
       "status": "Status",
-      "trackingNumber": "Tracking Number"
+      "trackingNumber": "Tracking Number",
+      "cancel": "Cancel"
+    },
+    "orderNotifications": {
+      "priceSentTitle": "Your Price Quote is Ready!",
+      "priceSentDesc": "A price quote has been sent for your order. Check your profile to view it.",
+      "statusChangedTitle": "Order Status Updated",
+      "statusChangedDesc": "Your order status has changed to:"
     },
     "faq": {
       "title": "Frequently Asked Questions",

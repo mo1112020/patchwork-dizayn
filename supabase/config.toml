@@ -1,5 +1,12 @@
 project_id = "nfediqkmrxcmchzsgyik"
 
+[auth.password]
+# Block passwords that appear in known data-breach lists (HaveIBeenPwned).
+# Also enable this in the Supabase Dashboard:
+#   Authentication > Security > "Prevent use of compromised passwords"
+hibp_enabled = true
+min_length = 8
+
 # Allow admin-api to be called from browser without JWT (auth via x-admin-secret).
 # Required so OPTIONS preflight gets 200 and CORS works from localhost.
 [functions.admin-api]

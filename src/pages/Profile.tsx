@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useDesigns } from '@/hooks/useDesigns';
@@ -12,6 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrderStatusBadge } from '@/components/designer/OrderStatusBadge';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
     FolderHeart,
     Trash2,
@@ -41,6 +51,9 @@ const Profile: React.FC = () => {
     const { toast } = useToast();
     const [designs, setDesigns] = useState<RugDesign[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const prevOrderStatusesRef = useRef<Record<string, string> | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -64,12 +77,16 @@ const Profile: React.FC = () => {
         fetchDesigns();
     }, [isAuthenticated, authLoading, navigate, getDesigns]);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm(t('profile.deleteConfirm'))) return;
+    const handleDeleteClick = (id: string) => {
+        setPendingDeleteId(id);
+        setDeleteDialogOpen(true);
+    };
 
+    const handleDeleteConfirm = async () => {
+        if (!pendingDeleteId) return;
         try {
-            await deleteDesign(id);
-            setDesigns(prev => prev.filter(d => d.id !== id));
+            await deleteDesign(pendingDeleteId);
+            setDesigns(prev => prev.filter(d => d.id !== pendingDeleteId));
             toast({
                 title: t('profile.deleted'),
                 description: t('profile.deletedDesc'),
@@ -80,8 +97,39 @@ const Profile: React.FC = () => {
                 description: t('profile.deleteFailed'),
                 variant: 'destructive',
             });
+        } finally {
+            setPendingDeleteId(null);
         }
     };
+
+    // Show toast notifications when order status changes via realtime
+    useEffect(() => {
+        if (ordersLoading) return;
+
+        if (prevOrderStatusesRef.current === null) {
+            prevOrderStatusesRef.current = Object.fromEntries(orders.map(o => [o.id, o.status]));
+            return;
+        }
+
+        for (const order of orders) {
+            const prevStatus = prevOrderStatusesRef.current[order.id];
+            if (prevStatus !== undefined && prevStatus !== order.status) {
+                if (order.status === 'price_sent') {
+                    toast({
+                        title: t('orderNotifications.priceSentTitle'),
+                        description: t('orderNotifications.priceSentDesc'),
+                    });
+                } else {
+                    toast({
+                        title: t('orderNotifications.statusChangedTitle'),
+                        description: `${t('orderNotifications.statusChangedDesc')} ${t(`orderStatusBadge.${order.status}`)}`,
+                    });
+                }
+            }
+        }
+
+        prevOrderStatusesRef.current = Object.fromEntries(orders.map(o => [o.id, o.status]));
+    }, [orders, ordersLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleLogout = async () => {
         await signOut();
@@ -99,6 +147,25 @@ const Profile: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('profile.deleteDesign')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('profile.deleteConfirm')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>
+                            {t('profile.cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            onClick={handleDeleteConfirm}
+                        >
+                            {t('profile.deleteDesign')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <main className="flex-1 page-container pt-24 pb-16">
                 <Tabs defaultValue="designs">
                     <div className="flex flex-col lg:flex-row gap-12 items-start">
@@ -263,8 +330,8 @@ const Profile: React.FC = () => {
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
-                                                                            className="rounded-2xl h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all opacity-40 hover:opacity-100"
-                                                                            onClick={() => handleDelete(design.id!)}
+                                                                            className="rounded-2xl h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
+                                                                            onClick={() => handleDeleteClick(design.id!)}
                                                                             title={t('profile.deleteDesign')}
                                                                         >
                                                                             <Trash2 className="w-5 h-5" />

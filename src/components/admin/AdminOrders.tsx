@@ -27,8 +27,19 @@ import {
     ArchiveRestore,
     Inbox,
     Euro,
-    Send
+    Send,
+    Trash2
 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import {
     Select,
@@ -81,6 +92,19 @@ export const AdminOrders: React.FC = () => {
         if (!error) {
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, design_snapshot: newSnapshot } : o));
             toast({ title: 'Arşivlendi', description: 'Sipariş arşive taşındı.' });
+        }
+    };
+
+    const deleteOrder = async (orderId: string) => {
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('id', orderId);
+        if (!error) {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            toast({ title: 'Silindi', description: 'Sipariş kalıcı olarak silindi.' });
+        } else {
+            toast({ title: 'Hata', description: 'Sipariş silinemedi.', variant: 'destructive' });
         }
     };
 
@@ -195,6 +219,7 @@ export const AdminOrders: React.FC = () => {
                                     isUpdating={updatingId === order.id}
                                     onUpdate={updateOrderStatus}
                                     onArchive={() => archiveOrder(order.id)}
+                                    onDelete={() => deleteOrder(order.id)}
                                     archiveMode="archive"
                                 />
                             ))}
@@ -220,6 +245,7 @@ export const AdminOrders: React.FC = () => {
                                     isUpdating={updatingId === order.id}
                                     onUpdate={updateOrderStatus}
                                     onArchive={() => unarchiveOrder(order.id)}
+                                    onDelete={() => deleteOrder(order.id)}
                                     archiveMode="unarchive"
                                 />
                             ))}
@@ -236,13 +262,15 @@ const OrderItem: React.FC<{
     isUpdating: boolean;
     onUpdate: (id: string, status: Order['status'], note: string | null, tracking: string | null, price?: number) => void;
     onArchive: () => void;
+    onDelete: () => void;
     archiveMode: 'archive' | 'unarchive';
-}> = ({ order, isUpdating, onUpdate, onArchive, archiveMode }) => {
+}> = ({ order, isUpdating, onUpdate, onArchive, onDelete, archiveMode }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [note, setNote] = useState<string>(order.admin_note || '');
     const [tracking, setTracking] = useState<string>(order.tracking_number || '');
     const [status, setStatus] = useState<Order['status']>(order.status);
     const [price, setPrice] = useState<string>((order.design_snapshot?.totalPrice || 0).toString());
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const clientName = order.design_snapshot?.metadata?.clientName || 'İsimsiz Müşteri';
     const phoneNumber = order.design_snapshot?.metadata?.phoneNumber || 'Belirtilmedi';
 
@@ -389,7 +417,35 @@ const OrderItem: React.FC<{
                                             <><ArchiveRestore className="w-3.5 h-3.5" /> Geri Al</>
                                         )}
                                     </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 rounded-lg text-xs font-bold gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                                        onClick={(e) => { e.stopPropagation(); setDeleteDialogOpen(true); }}
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Sil
+                                    </Button>
                                 </div>
+
+                                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Siparişi Sil</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Bu siparişi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                                onClick={onDelete}
+                                            >
+                                                Kalıcı Olarak Sil
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-bold uppercase text-muted-foreground ml-1">Not (Müşteriye Görünür)</label>
                                     <Textarea
