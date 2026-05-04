@@ -2,11 +2,8 @@
  * Simple client-side image compression using Canvas.
  * Resizes the image to fit within max dimensions and reduces quality if it's a JPEG.
  */
-export async function compressImage(file: File, maxWidth = 1920, maxHeight = 1080, quality = 0.8): Promise<File> {
+export async function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<File> {
     if (!file.type.startsWith('image/')) return file;
-
-    // Only compress if it's larger than 2MB
-    if (file.size < 2 * 1024 * 1024) return file;
 
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

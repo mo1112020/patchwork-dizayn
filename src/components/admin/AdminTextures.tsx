@@ -9,15 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { adminUpdateTexture, adminDeleteTexture, adminCreateTexture, adminUploadTextureImage } from '@/lib/admin-api';
-import { Plus, Pencil, Trash2, Upload, Loader2, ImageIcon } from 'lucide-react';
-import type { RugTexture } from '@/types/design';
+import { Plus, Pencil, Trash2, Upload, Loader2, ImageIcon, X } from 'lucide-react';
 
 const QUERY_KEY = ['rug-textures'];
 
@@ -30,6 +28,14 @@ type TextureRow = {
   display_order: number;
   category: string;
 };
+
+function slugify(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export function AdminTextures() {
   const { toast } = useToast();
@@ -107,41 +113,35 @@ export function AdminTextures() {
     queryClient.invalidateQueries({ queryKey: QUERY_KEY });
   };
 
-  const handleAdd = async (payload: { id: string; name: string; code: string; hex: string; category: string; photo: File | null }) => {
-    const { id, name, code, hex, category, photo } = payload;
-    const idClean = id.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!idClean || !name.trim() || !code.trim()) {
-      toast({ title: 'ID, ad ve kod zorunludur', variant: 'destructive' });
+  const handleAddMultiple = async (category: string, photos: { file: File; name: string }[]) => {
+    if (!photos.length) {
+      toast({ title: 'En az bir fotoğraf seçin', variant: 'destructive' });
       return;
     }
-    const finalId = idClean.startsWith('tex-') ? idClean : `tex-${idClean}`;
     setSaving(true);
-    const { error } = await adminCreateTexture({
-      id: finalId,
-      name: name.trim(),
-      code: code.trim(),
-      hex: hex.trim() || undefined,
-      category: category.trim() || 'Genel',
-      display_order: textures.length,
-    });
-    if (error) {
-      setSaving(false);
-      toast({ title: 'Eklenemedi', description: error, variant: 'destructive' });
-      return;
-    }
-    if (photo) {
-      const compressedPhoto = await compressImage(photo);
-      const { error: uploadError } = await adminUploadTextureImage(finalId, compressedPhoto);
-      if (uploadError) {
-        toast({ title: 'Doku eklendi, fotoğraf yüklenemedi', description: uploadError, variant: 'destructive' });
-      } else {
-        toast({ title: 'Doku ve fotoğraf eklendi' });
-      }
-    } else {
-      toast({ title: 'Doku eklendi' });
+    let successCount = 0;
+    let failCount = 0;
+    for (let i = 0; i < photos.length; i++) {
+      const { file, name } = photos[i];
+      const slug = slugify(name || file.name);
+      const finalId = `tex-${slug}-${Date.now()}-${i}`;
+      const code = `TX-${(textures.length + i + 1).toString().padStart(3, '0')}`;
+      const { error: createError } = await adminCreateTexture({
+        id: finalId,
+        name: name.trim() || slug,
+        code,
+        category: category.trim() || 'Genel',
+        display_order: textures.length + i,
+      });
+      if (createError) { failCount++; continue; }
+      const compressed = await compressImage(file);
+      const { error: uploadError } = await adminUploadTextureImage(finalId, compressed);
+      if (uploadError) { failCount++; } else { successCount++; }
     }
     setSaving(false);
     setAddOpen(false);
+    if (successCount) toast({ title: `${successCount} doku eklendi` });
+    if (failCount) toast({ title: `${failCount} doku eklenemedi`, variant: 'destructive' });
     loadTextures();
     queryClient.invalidateQueries({ queryKey: QUERY_KEY });
   };
@@ -156,7 +156,7 @@ export function AdminTextures() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Halı dokuları</CardTitle>
-              <CardDescription>Halı dokularını ekleyin, fotoğraf ve bilgileri girin. Eklenen dokular tasarım sayfasında listelenir.</CardDescription>
+              <CardDescription>Fotoğraf yükleyin. Eklenen dokular tasarım sayfasında listelenir.</CardDescription>
             </div>
             <Button onClick={() => setAddOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" /> Yeni doku
@@ -178,11 +178,7 @@ export function AdminTextures() {
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                       {imageUrl(row.image_path) ? (
-                        <img
-                          src={imageUrl(row.image_path)!}
-                          alt={row.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={imageUrl(row.image_path)!} alt={row.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon className="w-6 h-6 text-muted-foreground" />
@@ -236,17 +232,18 @@ export function AdminTextures() {
         onSave={handleSaveEdit}
         saving={saving}
       />
-      <AddTextureDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAdd} saving={saving} />
+      <AddTexturesDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdd={handleAddMultiple}
+        saving={saving}
+      />
     </>
   );
 }
 
 function EditTextureDialog({
-  open,
-  onOpenChange,
-  row,
-  onSave,
-  saving,
+  open, onOpenChange, row, onSave, saving,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -273,7 +270,6 @@ function EditTextureDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Doku düzenle</DialogTitle>
-          <DialogDescription>Ad, kod, renk ve kategori güncelleyin.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -289,7 +285,7 @@ function EditTextureDialog({
             <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Örn. Vintage" />
           </div>
           <div className="grid gap-2">
-            <Label>Hex renk (PDF / önizleme)</Label>
+            <Label>Hex renk</Label>
             <Input value={hex} onChange={(e) => setHex(e.target.value)} placeholder="#F5F5DC" />
           </div>
         </div>
@@ -304,119 +300,103 @@ function EditTextureDialog({
   );
 }
 
-function AddTextureDialog({
-  open,
-  onOpenChange,
-  onAdd,
-  saving,
+type PhotoItem = { file: File; preview: string; name: string };
+
+function AddTexturesDialog({
+  open, onOpenChange, onAdd, saving,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onAdd: (payload: { id: string; name: string; code: string; hex: string; category: string; photo: File | null }) => void;
+  onAdd: (category: string, photos: { file: File; name: string }[]) => void;
   saving: boolean;
 }) {
-  const [id, setId] = useState('');
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [hex, setHex] = useState('');
   const [category, setCategory] = useState('Genel');
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhoto(file);
-      const url = URL.createObjectURL(file);
-      setPhotoPreview(url);
-    } else {
-      setPhoto(null);
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
-      setPhotoPreview(null);
-    }
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const newItems: PhotoItem[] = Array.from(files).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name.replace(/\.[^.]+$/, ''),
+    }));
+    setPhotos((prev) => [...prev, ...newItems]);
   };
 
-  const handleClose = (open: boolean) => {
-    if (!open) {
-      setPhoto(null);
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
-      setPhotoPreview(null);
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const updateName = (index: number, name: string) => {
+    setPhotos((prev) => prev.map((p, i) => (i === index ? { ...p, name } : p)));
+  };
+
+  const handleClose = (v: boolean) => {
+    if (!v) {
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+      setPhotos([]);
+      setCategory('Genel');
     }
-    onOpenChange(open);
+    onOpenChange(v);
   };
 
   const handleSubmit = () => {
-    onAdd({ id, name, code, hex, category, photo });
+    onAdd(category, photos.map((p) => ({ file: p.file, name: p.name })));
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Yeni halı dokusu</DialogTitle>
-          <DialogDescription>
-            Bilgileri girin ve isteğe bağlı olarak halı fotoğrafı yükleyin. Eklenen dokular tasarımcıda görünür.
-          </DialogDescription>
+          <DialogTitle>Yeni doku ekle</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label>ID (benzersiz)</Label>
-            <Input value={id} onChange={(e) => setId(e.target.value)} placeholder="tex-yeni" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Ad</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Yeni doku" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Kod</Label>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="TX-601" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Hex renk (PDF / önizleme)</Label>
-            <Input value={hex} onChange={(e) => setHex(e.target.value)} placeholder="#E5E5E5" />
-          </div>
           <div className="grid gap-2">
             <Label>Kategori</Label>
             <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Örn. Vintage, Modern, Klasik" />
           </div>
+
           <div className="grid gap-2">
-            <Label>Halı fotoğrafı (isteğe bağlı)</Label>
-            <div className="flex items-center gap-3">
-              <div className="relative w-20 h-20 rounded-lg border border-dashed border-muted-foreground/30 overflow-hidden bg-muted flex-shrink-0">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  id="add-texture-photo"
-                  onChange={handlePhotoChange}
-                />
-                <Label htmlFor="add-texture-photo" className="cursor-pointer">
-                  <Button type="button" variant="outline" size="sm" className="gap-1" asChild>
-                    <span>
-                      <Upload className="w-3 h-3" />
-                      {photo ? 'Değiştir' : 'Fotoğraf seç'}
-                    </span>
-                  </Button>
-                </Label>
-                {photo && <p className="text-xs text-muted-foreground mt-1 truncate">{photo.name}</p>}
-                <p className="text-[10px] text-muted-foreground/60 mt-1">Büyük dosyalar otomatik olarak optimize edilir.</p>
-              </div>
-            </div>
+            <Label>Fotoğraflar</Label>
+            <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-muted-foreground/60 transition-colors bg-muted/30">
+              <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+              <span className="text-sm text-muted-foreground">Fotoğraf seç (birden fazla seçebilirsiniz)</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+            </label>
           </div>
+
+          {photos.length > 0 && (
+            <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
+              {photos.map((p, i) => (
+                <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card">
+                  <img src={p.preview} alt="" className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
+                  <Input
+                    value={p.name}
+                    onChange={(e) => updateName(i, e.target.value)}
+                    className="flex-1 h-8 text-sm"
+                    placeholder="Doku adı"
+                  />
+                  <button onClick={() => removePhoto(i)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleClose(false)}>İptal</Button>
-          <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ekle'}
+          <Button variant="outline" onClick={() => handleClose(false)} disabled={saving}>İptal</Button>
+          <Button onClick={handleSubmit} disabled={saving || !photos.length}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : `Ekle (${photos.length})`}
           </Button>
         </DialogFooter>
       </DialogContent>
