@@ -13,11 +13,12 @@ const BUCKET = 'rug-textures';
 export const textureImageGlobalCache = new Map<string, HTMLImageElement>();
 const preloadingIds = new Set<string>();
 
-function preloadImage(id: string, url: string) {
-  if (textureImageGlobalCache.has(id) || preloadingIds.has(id)) return;
+const PRELOAD_BATCH_SIZE = 6;
+
+function preloadImage(id: string, url: string): Promise<void> {
+  if (textureImageGlobalCache.has(id) || preloadingIds.has(id)) return Promise.resolve();
   preloadingIds.add(id);
 
-  // 1. Inject <link rel="preload"> into <head> for early browser fetch
   if (typeof document !== 'undefined') {
     const existing = document.querySelector(`link[data-texture-id="${id}"]`);
     if (!existing) {
@@ -30,20 +31,29 @@ function preloadImage(id: string, url: string) {
     }
   }
 
-  // 2. Eagerly decode the Image into memory using decode() for non-blocking async decode
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.src = url;
-  img.decode().then(() => {
+  return img.decode().then(() => {
     textureImageGlobalCache.set(id, img);
     preloadingIds.delete(id);
   }).catch(() => {
-    // Fallback: store even if decode() fails (image still usable via onload)
-    img.onload = () => {
-      textureImageGlobalCache.set(id, img);
-    };
-    preloadingIds.delete(id);
+    return new Promise<void>((resolve) => {
+      img.onload = () => {
+        textureImageGlobalCache.set(id, img);
+        preloadingIds.delete(id);
+        resolve();
+      };
+      img.onerror = () => { preloadingIds.delete(id); resolve(); };
+    });
   });
+}
+
+async function preloadBatched(textures: { id: string; imageUrl: string }[]) {
+  for (let i = 0; i < textures.length; i += PRELOAD_BATCH_SIZE) {
+    const batch = textures.slice(i, i + PRELOAD_BATCH_SIZE);
+    await Promise.all(batch.map((t) => preloadImage(t.id, t.imageUrl)));
+  }
 }
 
 function buildTextureFromRow(row: {
@@ -78,12 +88,8 @@ async function fetchTextures(): Promise<RugTexture[]> {
 
   const textures = data.map(buildTextureFromRow);
 
-  // Start preloading all images immediately after fetch
-  textures.forEach((tex) => {
-    if (tex.imageUrl && tex.imageUrl !== TEXTURE_PLACEHOLDER) {
-      preloadImage(tex.id, tex.imageUrl);
-    }
-  });
+  const toPreload = textures.filter((t) => t.imageUrl && t.imageUrl !== TEXTURE_PLACEHOLDER);
+  preloadBatched(toPreload);
 
   return textures;
 }
