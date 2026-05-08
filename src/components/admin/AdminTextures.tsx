@@ -9,15 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { adminUpdateTexture, adminDeleteTexture, adminCreateTexture, adminUploadTextureImage } from '@/lib/admin-api';
+import { adminUpdateTexture, adminDeleteTexture, adminCreateTexture, adminUploadTextureImage, adminGetMaxTextureCodeNum } from '@/lib/admin-api';
 import { Plus, Pencil, Trash2, Upload, Loader2, ImageIcon, X } from 'lucide-react';
 
 const QUERY_KEY = ['rug-textures'];
+const PAGE_SIZE = 18;
+const ALL = 'Tümü';
 
 type TextureRow = {
   id: string;
@@ -47,6 +50,8 @@ export function AdminTextures() {
   const [addOpen, setAddOpen] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(ALL);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadTextures = React.useCallback(async () => {
     setLoading(true);
@@ -101,7 +106,7 @@ export function AdminTextures() {
 
   const handleUpload = async (row: TextureRow, file: File) => {
     setUploadingId(row.id);
-    const compressedFile = await compressImage(file);
+    const compressedFile = await compressImage(file, 600, 600);
     const { error } = await adminUploadTextureImage(row.id, compressedFile);
     setUploadingId(null);
     if (error) {
@@ -119,13 +124,15 @@ export function AdminTextures() {
       return;
     }
     setSaving(true);
+    const maxCodeNum = await adminGetMaxTextureCodeNum();
     let successCount = 0;
     let failCount = 0;
+    let lastError = '';
     for (let i = 0; i < photos.length; i++) {
       const { file, name } = photos[i];
       const slug = slugify(name || file.name);
       const finalId = `tex-${slug}-${Date.now()}-${i}`;
-      const code = `TX-${(textures.length + i + 1).toString().padStart(3, '0')}`;
+      const code = `TX-${(maxCodeNum + i + 1).toString().padStart(3, '0')}`;
       const { error: createError } = await adminCreateTexture({
         id: finalId,
         name: name.trim() || slug,
@@ -133,21 +140,51 @@ export function AdminTextures() {
         category: category.trim() || 'Genel',
         display_order: textures.length + i,
       });
-      if (createError) { failCount++; continue; }
-      const compressed = await compressImage(file);
+      if (createError) { failCount++; lastError = createError; continue; }
+      const compressed = await compressImage(file, 600, 600);
       const { error: uploadError } = await adminUploadTextureImage(finalId, compressed);
-      if (uploadError) { failCount++; } else { successCount++; }
+      if (uploadError) { failCount++; lastError = uploadError; } else { successCount++; }
     }
     setSaving(false);
     setAddOpen(false);
     if (successCount) toast({ title: `${successCount} doku eklendi` });
-    if (failCount) toast({ title: `${failCount} doku eklenemedi`, variant: 'destructive' });
+    if (failCount) toast({ title: `${failCount} doku eklenemedi`, description: lastError, variant: 'destructive' });
     loadTextures();
     queryClient.invalidateQueries({ queryKey: QUERY_KEY });
   };
 
   const imageUrl = (path: string | null) =>
-    path ? supabase.storage.from('rug-textures').getPublicUrl(path).data.publicUrl : null;
+    path
+      ? supabase.storage.from('rug-textures').getPublicUrl(path, {
+          transform: { width: 128, height: 128, resize: 'cover' },
+        }).data.publicUrl
+      : null;
+
+  const categories = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of textures) {
+      counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
+    }
+    return [
+      { name: ALL, count: textures.length },
+      ...[...counts.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, count]) => ({ name, count })),
+    ];
+  }, [textures]);
+
+  const filteredTextures = React.useMemo(
+    () => selectedCategory === ALL ? textures : textures.filter((t) => t.category === selectedCategory),
+    [textures, selectedCategory]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredTextures.length / PAGE_SIZE));
+  const pagedTextures = filteredTextures.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const selectCategory = (name: string) => {
+    setSelectedCategory(name);
+    setCurrentPage(1);
+  };
 
   return (
     <>
@@ -169,57 +206,102 @@ export function AdminTextures() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {textures.map((row) => (
-                <div
-                  key={row.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border p-4 bg-card"
-                >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {imageUrl(row.image_path) ? (
-                        <img src={imageUrl(row.image_path)!} alt={row.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{row.name}</p>
-                      <p className="text-sm text-muted-foreground">{row.code}</p>
-                      <p className="text-xs text-muted-foreground/70">{row.category}</p>
-                    </div>
-                  </div>
+            <div className="flex gap-4">
+              <nav className="w-56 shrink-0 space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 pb-2">Kategoriler</p>
+                {categories.map(({ name, count }) => (
+                  <button
+                    key={name}
+                    onClick={() => selectCategory(name)}
+                    className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                      selectedCategory === name
+                        ? 'bg-foreground text-background font-medium'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <span className="truncate">{name}</span>
+                    <span className={`text-xs rounded-full px-1.5 py-0.5 ml-1 shrink-0 ${
+                      selectedCategory === name ? 'bg-white/20' : 'bg-muted text-muted-foreground'
+                    }`}>{count}</span>
+                  </button>
+                ))}
+              </nav>
 
-                  <div className="flex sm:flex-col gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
-                    <label className="cursor-pointer flex-1 sm:flex-none">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handleUpload(row, f);
-                        }}
-                        disabled={!!uploadingId}
-                      />
-                      <Button variant="outline" size="sm" className="w-full gap-1 h-8 text-[10px]" asChild>
-                        <span>
-                          {uploadingId === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                          Foto
-                        </span>
-                      </Button>
-                    </label>
-                    <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[10px] gap-1" onClick={() => handleEdit(row)}>
-                      <Pencil className="w-3 h-3" /> Düzenle
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[10px] gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
-                      <Trash2 className="w-3 h-3" /> Sil
-                    </Button>
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {pagedTextures.map((row) => (
+                    <div
+                      key={row.id}
+                      className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border p-4 bg-card"
+                    >
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {imageUrl(row.image_path) ? (
+                            <img src={imageUrl(row.image_path)!} alt={row.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{row.name}</p>
+                          <p className="text-sm text-muted-foreground">{row.code}</p>
+                          <p className="text-xs text-muted-foreground/70">{row.category}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex sm:flex-col gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                        <label className="cursor-pointer flex-1 sm:flex-none">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleUpload(row, f);
+                            }}
+                            disabled={!!uploadingId}
+                          />
+                          <Button variant="outline" size="sm" className="w-full gap-1 h-8 text-[10px]" asChild>
+                            <span>
+                              {uploadingId === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                              Foto
+                            </span>
+                          </Button>
+                        </label>
+                        <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[10px] gap-1" onClick={() => handleEdit(row)}>
+                          <Pencil className="w-3 h-3" /> Düzenle
+                        </Button>
+                        <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[10px] gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
+                          <Trash2 className="w-3 h-3" /> Sil
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                    <span className="text-xs text-muted-foreground">
+                      Sayfa {currentPage} / {totalPages} · {filteredTextures.length} doku
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>«</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage((p) => p - 1)} disabled={currentPage === 1}>‹</Button>
+                      {(() => {
+                        const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+                        const end = Math.min(totalPages, start + 4);
+                        return Array.from({ length: end - start + 1 }, (_, i) => start + i).map((p) => (
+                          <Button key={p} variant={p === currentPage ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(p)}>{p}</Button>
+                        ));
+                      })()}
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage === totalPages}>›</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>»</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -270,6 +352,7 @@ function EditTextureDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Doku düzenle</DialogTitle>
+          <DialogDescription>Ad, kod, kategori ve hex rengi güncelleyin.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -352,39 +435,27 @@ function AddTexturesDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Yeni doku ekle</DialogTitle>
+          <DialogDescription>Kategori seçin ve fotoğraf yükleyin.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label>Kategori</Label>
             <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Örn. Vintage, Modern, Klasik" />
           </div>
-
           <div className="grid gap-2">
             <Label>Fotoğraflar</Label>
             <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-muted-foreground/60 transition-colors bg-muted/30">
               <Upload className="w-6 h-6 text-muted-foreground mb-1" />
               <span className="text-sm text-muted-foreground">Fotoğraf seç (birden fazla seçebilirsiniz)</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFiles(e.target.files)}
-              />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
             </label>
           </div>
-
           {photos.length > 0 && (
             <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
               {photos.map((p, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card">
                   <img src={p.preview} alt="" className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                  <Input
-                    value={p.name}
-                    onChange={(e) => updateName(i, e.target.value)}
-                    className="flex-1 h-8 text-sm"
-                    placeholder="Doku adı"
-                  />
+                  <Input value={p.name} onChange={(e) => updateName(i, e.target.value)} className="flex-1 h-8 text-sm" placeholder="Doku adı" />
                   <button onClick={() => removePhoto(i)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
                     <X className="w-4 h-4" />
                   </button>

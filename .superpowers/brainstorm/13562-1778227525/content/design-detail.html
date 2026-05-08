@@ -1,0 +1,200 @@
+<h2>Sidebar Categories — Detailed Design</h2>
+<p class="subtitle">18 textures per page · click anywhere to see interactions</p>
+
+<style>
+.preview-wrap {
+  background: #f4f4f4;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: system-ui, sans-serif;
+}
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.preview-title { font-size: 15px; font-weight: 700; }
+.preview-btn {
+  background: #222;
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.preview-layout {
+  display: flex;
+  gap: 12px;
+}
+.preview-sidebar {
+  width: 130px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+.preview-sidebar-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+.preview-sidebar-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.preview-sidebar-item.active {
+  background: #222;
+  color: #fff;
+}
+.preview-sidebar-item .badge {
+  font-size: 10px;
+  opacity: 0.65;
+  background: rgba(0,0,0,0.08);
+  border-radius: 999px;
+  padding: 1px 5px;
+}
+.preview-sidebar-item.active .badge {
+  background: rgba(255,255,255,0.2);
+}
+.preview-main { flex: 1; min-width: 0; }
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.preview-tex {
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  background: #fff;
+}
+.preview-tex-img {
+  width: 100%;
+  height: 44px;
+  background: #ddd;
+}
+.preview-tex-info {
+  padding: 4px 6px;
+}
+.preview-tex-name { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-tex-code { font-size: 9px; color: #888; }
+.preview-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+.preview-page-info { font-size: 10px; color: #888; }
+.preview-page-btns { display: flex; gap: 4px; }
+.preview-page-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+.preview-page-btn.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+
+/* texture color swatches */
+.c1{background:#c8b89a} .c2{background:#e8e0d0} .c3{background:#a09080}
+.c4{background:#4a5568} .c5{background:#8b6b4a} .c6{background:#d4a03c}
+.c7{background:#1b3a57} .c8{background:#87a878} .c9{background:#6b7b3e}
+</style>
+
+<div class="mockup">
+  <div class="mockup-header">Admin → Halı Dokuları (Textures)</div>
+  <div class="mockup-body" style="padding: 0;">
+    <div class="preview-wrap">
+      <div class="preview-header">
+        <span class="preview-title">Halı dokuları</span>
+        <span class="preview-btn">+ Yeni doku</span>
+      </div>
+      <div class="preview-layout">
+
+        <!-- Sidebar -->
+        <div class="preview-sidebar">
+          <div class="preview-sidebar-title">Kategoriler</div>
+          <div class="preview-sidebar-item active">
+            Tümü <span class="badge">42</span>
+          </div>
+          <div class="preview-sidebar-item">
+            Vintage <span class="badge">12</span>
+          </div>
+          <div class="preview-sidebar-item">
+            Modern <span class="badge">8</span>
+          </div>
+          <div class="preview-sidebar-item">
+            Klasik <span class="badge">10</span>
+          </div>
+          <div class="preview-sidebar-item">
+            Genel <span class="badge">12</span>
+          </div>
+        </div>
+
+        <!-- Main area -->
+        <div class="preview-main">
+          <!-- 9 texture cards shown (representing 18 in real layout) -->
+          <div class="preview-grid">
+            <div class="preview-tex"><div class="preview-tex-img c1"></div><div class="preview-tex-info"><div class="preview-tex-name">Fildişi</div><div class="preview-tex-code">TX-101</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c2"></div><div class="preview-tex-info"><div class="preview-tex-name">Krem</div><div class="preview-tex-code">TX-102</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c3"></div><div class="preview-tex-info"><div class="preview-tex-name">Bej</div><div class="preview-tex-code">TX-103</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c4"></div><div class="preview-tex-info"><div class="preview-tex-name">Kömür</div><div class="preview-tex-code">TX-104</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c5"></div><div class="preview-tex-info"><div class="preview-tex-name">Terracotta</div><div class="preview-tex-code">TX-201</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c6"></div><div class="preview-tex-info"><div class="preview-tex-name">Kehribar</div><div class="preview-tex-code">TX-203</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c7"></div><div class="preview-tex-info"><div class="preview-tex-name">Lacivert</div><div class="preview-tex-code">TX-301</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c8"></div><div class="preview-tex-info"><div class="preview-tex-name">Adaçayı</div><div class="preview-tex-code">TX-302</div></div></div>
+            <div class="preview-tex"><div class="preview-tex-img c9"></div><div class="preview-tex-info"><div class="preview-tex-name">Zeytin</div><div class="preview-tex-code">TX-303</div></div></div>
+          </div>
+          <div class="preview-pagination">
+            <span class="preview-page-info">Sayfa 1 / 3 · 42 doku</span>
+            <div class="preview-page-btns">
+              <div class="preview-page-btn">‹</div>
+              <div class="preview-page-btn active">1</div>
+              <div class="preview-page-btn">2</div>
+              <div class="preview-page-btn">3</div>
+              <div class="preview-page-btn">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>Behaviour summary</h3>
+  <ul style="font-size: 13px; line-height: 1.8; padding-left: 20px;">
+    <li>Sidebar shows every category with a count badge — auto-built from your texture data</li>
+    <li>"Tümü" (All) is always the first item and selected by default</li>
+    <li>Clicking a category resets to page 1 and shows only that category's textures</li>
+    <li>18 textures per page in a responsive grid (3 cols → 2 cols on narrow screens)</li>
+    <li>Pagination shows "Page X / Y · N textures" so you always know where you are</li>
+    <li>No backend changes needed — all filtering and paging happens in the browser with the already-loaded texture list</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="text-align:center; margin-top: 12px;">Does this look right? Let me know in the terminal — any changes or good to go?</p>

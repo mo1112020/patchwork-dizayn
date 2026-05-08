@@ -119,7 +119,7 @@ export default function AdminLayout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <div className="container max-w-5xl mx-auto px-4 py-6">
+        <div className="container max-w-7xl mx-auto px-4 py-6">
           <Outlet />
         </div>
       </main>

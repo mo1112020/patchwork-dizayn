@@ -54,7 +54,8 @@ export interface RugTexture {
   id: string;
   name: string;
   code: string; // e.g. TX-001
-  imageUrl: string; // path or URL to texture photo
+  imageUrl: string; // full-size URL used by the canvas
+  thumbnailUrl: string; // 200×200 resized URL used by thumbnails
   hex?: string; // for PDF swatch / fallback
   category?: string;
 }

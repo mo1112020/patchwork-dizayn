@@ -67,11 +67,17 @@ function buildTextureFromRow(row: {
   const imageUrl = row.image_path
     ? supabase.storage.from(BUCKET).getPublicUrl(row.image_path).data.publicUrl
     : TEXTURE_PLACEHOLDER;
+  const thumbnailUrl = row.image_path
+    ? supabase.storage.from(BUCKET).getPublicUrl(row.image_path, {
+        transform: { width: 200, height: 200, resize: 'cover' },
+      }).data.publicUrl
+    : TEXTURE_PLACEHOLDER;
   return {
     id: row.id,
     name: row.name,
     code: row.code,
     imageUrl,
+    thumbnailUrl,
     hex: row.hex ?? undefined,
     category: row.category,
   };
@@ -88,7 +94,10 @@ async function fetchTextures(): Promise<RugTexture[]> {
 
   const textures = data.map(buildTextureFromRow);
 
-  const toPreload = textures.filter((t) => t.imageUrl && t.imageUrl !== TEXTURE_PLACEHOLDER);
+  // Preload thumbnail URLs — much smaller than full-size, faster on mobile
+  const toPreload = textures
+    .filter((t) => t.thumbnailUrl && t.thumbnailUrl !== TEXTURE_PLACEHOLDER)
+    .map((t) => ({ id: t.id, imageUrl: t.thumbnailUrl }));
   preloadBatched(toPreload);
 
   return textures;

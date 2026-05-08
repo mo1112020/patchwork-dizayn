@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 
-const FRANKFURTER_URL = 'https://api.frankfurter.app/latest?from=USD&to=TRY';
+// open.er-api.com is a free, CORS-enabled exchange rate API
+const OPEN_ER_URL = 'https://open.er-api.com/v6/latest/USD';
 
 async function fetchUsdToTry(): Promise<number> {
-  const res = await fetch(FRANKFURTER_URL);
+  const res = await fetch(OPEN_ER_URL);
   if (!res.ok) throw new Error('Exchange rate unavailable');
   const data = await res.json();
   const rate = data?.rates?.TRY;

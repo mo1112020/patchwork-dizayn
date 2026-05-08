@@ -1,10 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const BUCKET = 'rug-textures';
-/** Hero images stored in same bucket under hero/ prefix (no extra bucket needed). */
 const HERO_PATH_PREFIX = 'hero/';
-
-/** Direct Supabase client calls (no Edge Function). Admin must be signed in so RLS allows writes. */
 
 export async function adminUpdateSettings(settings: Record<string, unknown>): Promise<{ error: string | null }> {
   const { error } = await supabase
@@ -13,6 +10,18 @@ export async function adminUpdateSettings(settings: Record<string, unknown>): Pr
     .eq('id', 'default');
   if (error) return { error: error.message };
   return { error: null };
+}
+
+export async function adminGetMaxTextureCodeNum(): Promise<number> {
+  const { data } = await supabase
+    .from('rug_textures')
+    .select('code')
+    .like('code', 'TX-%');
+  if (!data?.length) return 0;
+  return data.reduce((max, row) => {
+    const m = (row.code as string).match(/^TX-(\d+)$/);
+    return m ? Math.max(max, parseInt(m[1], 10)) : max;
+  }, 0);
 }
 
 export async function adminCreateTexture(payload: {
@@ -79,7 +88,6 @@ export async function adminUploadTextureImage(
   return { error: null };
 }
 
-/** Upload a hero section image to rug-textures bucket under hero/ prefix. Returns public URL on success. */
 export async function adminUploadHeroImage(file: File): Promise<{ url: string | null; error: string | null }> {
   const ext = file.type?.includes('png') ? 'png' : 'jpg';
   const path = `${HERO_PATH_PREFIX}hero-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;

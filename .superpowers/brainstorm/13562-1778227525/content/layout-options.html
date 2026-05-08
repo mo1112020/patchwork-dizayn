@@ -1,0 +1,243 @@
+<h2>How should categories + pagination look?</h2>
+<p class="subtitle">Pick the layout that feels right for browsing textures in the admin panel</p>
+
+<style>
+.mock-panel {
+  background: #f8f8f8;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+  color: #333;
+}
+.mock-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.mock-tab {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: default;
+  font-size: 11px;
+}
+.mock-tab.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+.mock-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.mock-texture {
+  background: #ddd;
+  border-radius: 6px;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  padding: 3px;
+  font-size: 9px;
+  color: #555;
+}
+.mock-page-bar {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.mock-page-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mock-page-btn.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+.mock-sidebar-layout {
+  display: flex;
+  gap: 8px;
+}
+.mock-sidebar {
+  width: 90px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 6px;
+  flex-shrink: 0;
+}
+.mock-sidebar-item {
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  margin-bottom: 2px;
+  cursor: default;
+  display: flex;
+  justify-content: space-between;
+}
+.mock-sidebar-item.active {
+  background: #222;
+  color: #fff;
+}
+.mock-sidebar-item .count {
+  opacity: 0.6;
+  font-size: 9px;
+}
+.mock-main { flex: 1; }
+.mock-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.mock-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 10px;
+}
+.mock-chip.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+.option-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+</style>
+
+<div class="cards">
+
+  <!-- Option A: Category Tabs -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px; background: #fafafa;">
+      <div class="option-label">Option A — Category Tabs</div>
+      <div class="mock-panel">
+        <div class="mock-tab-bar">
+          <div class="mock-tab active">All (42)</div>
+          <div class="mock-tab">Vintage (12)</div>
+          <div class="mock-tab">Modern (8)</div>
+          <div class="mock-tab">Classic (10)</div>
+          <div class="mock-tab">Genel (12)</div>
+        </div>
+        <div class="mock-grid">
+          <div class="mock-texture" style="background:#c8b89a">Ivory</div>
+          <div class="mock-texture" style="background:#b5a898">Cream</div>
+          <div class="mock-texture" style="background:#a09080">Beige</div>
+          <div class="mock-texture" style="background:#7a7a7a">Charcoal</div>
+          <div class="mock-texture" style="background:#c4a882">Vintage 1</div>
+          <div class="mock-texture" style="background:#d4b896">Vintage 2</div>
+          <div class="mock-texture" style="background:#9a8878">Classic</div>
+          <div class="mock-texture" style="background:#bca898">Modern</div>
+        </div>
+        <div class="mock-page-bar">
+          <div class="mock-page-btn active">1</div>
+          <div class="mock-page-btn">2</div>
+          <div class="mock-page-btn">3</div>
+          <div class="mock-page-btn">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Category Tabs</h3>
+      <p>Horizontal tabs across the top — one tab per category plus "All". Click a tab to show only that category's textures, with page numbers below.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Sidebar Categories -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px; background: #fafafa;">
+      <div class="option-label">Option B — Sidebar Categories</div>
+      <div class="mock-panel">
+        <div class="mock-sidebar-layout">
+          <div class="mock-sidebar">
+            <div style="font-size:10px;font-weight:700;margin-bottom:5px;color:#999;">Categories</div>
+            <div class="mock-sidebar-item active">All <span class="count">42</span></div>
+            <div class="mock-sidebar-item">Vintage <span class="count">12</span></div>
+            <div class="mock-sidebar-item">Modern <span class="count">8</span></div>
+            <div class="mock-sidebar-item">Classic <span class="count">10</span></div>
+            <div class="mock-sidebar-item">Genel <span class="count">12</span></div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-grid">
+              <div class="mock-texture" style="background:#c8b89a">Ivory</div>
+              <div class="mock-texture" style="background:#b5a898">Cream</div>
+              <div class="mock-texture" style="background:#a09080">Beige</div>
+              <div class="mock-texture" style="background:#7a7a7a">Charcoal</div>
+              <div class="mock-texture" style="background:#c4a882">Vintage 1</div>
+              <div class="mock-texture" style="background:#d4b896">Vintage 2</div>
+            </div>
+            <div class="mock-page-bar">
+              <div class="mock-page-btn active">1</div>
+              <div class="mock-page-btn">2</div>
+              <div class="mock-page-btn">3</div>
+              <div class="mock-page-btn">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Sidebar Categories</h3>
+      <p>Category list on the left with texture counts — always visible. Textures on the right with pagination. Great when you have many categories.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Filter Chips -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px; background: #fafafa;">
+      <div class="option-label">Option C — Filter Chips + Pages</div>
+      <div class="mock-panel">
+        <div class="mock-chips">
+          <div class="mock-chip active">All</div>
+          <div class="mock-chip">Vintage</div>
+          <div class="mock-chip">Modern</div>
+          <div class="mock-chip">Classic</div>
+          <div class="mock-chip">Genel</div>
+        </div>
+        <div class="mock-grid">
+          <div class="mock-texture" style="background:#c8b89a">Ivory</div>
+          <div class="mock-texture" style="background:#b5a898">Cream</div>
+          <div class="mock-texture" style="background:#a09080">Beige</div>
+          <div class="mock-texture" style="background:#7a7a7a">Charcoal</div>
+          <div class="mock-texture" style="background:#c4a882">Vintage 1</div>
+          <div class="mock-texture" style="background:#d4b896">Vintage 2</div>
+          <div class="mock-texture" style="background:#9a8878">Classic</div>
+          <div class="mock-texture" style="background:#bca898">Modern</div>
+        </div>
+        <div class="mock-page-bar">
+          <div class="mock-page-btn">‹</div>
+          <div class="mock-page-btn active">1</div>
+          <div class="mock-page-btn">2</div>
+          <div class="mock-page-btn">3</div>
+          <div class="mock-page-btn">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Filter Chips + Pages</h3>
+      <p>Pill-shaped filter buttons at the top — compact and scrollable if many categories. Page numbers below the grid. Cleanest layout, works well on any screen size.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 16px; text-align: center;">Click a layout to select it, then tell me your choice in the terminal</p>

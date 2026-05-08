@@ -59,7 +59,7 @@ function TextureThumb({
     >
       <div className="absolute inset-0">
         <img
-          src={tex.imageUrl}
+          src={tex.thumbnailUrl}
           alt={tex.name}
           className="w-full h-full object-cover"
           loading={eager ? 'eager' : 'lazy'}
@@ -100,7 +100,7 @@ function TexturePreviewPopup({ preview }: { preview: PreviewState }) {
     >
       <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 bg-muted">
         <img
-          src={preview.tex.imageUrl}
+          src={preview.tex.thumbnailUrl}
           alt={preview.tex.name}
           className="w-full h-full object-cover"
           loading="eager"
@@ -200,10 +200,10 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
               title={`${tex.name} (${tex.code})`}
             >
               <img
-                src={tex.imageUrl}
+                src={tex.thumbnailUrl}
                 alt={tex.name}
                 className="w-full h-full object-cover"
-                loading={i < 8 ? 'eager' : 'lazy'}
+                loading={i < 4 ? 'eager' : 'lazy'}
                 decoding="async"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
