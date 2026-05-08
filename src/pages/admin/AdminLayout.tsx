@@ -90,9 +90,9 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+    <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden">
       {/* Mobile Header */}
-      <header className="lg:hidden h-14 border-b border-border bg-card px-4 flex items-center justify-between shrink-0 sticky top-0 z-40">
+      <header className="lg:hidden h-14 border-b border-border bg-card px-4 flex items-center justify-between shrink-0 z-40">
         <div className="flex items-center gap-2">
           <LayoutDashboard className="w-5 h-5 text-primary" />
           <span className="font-semibold text-sm">Panel</span>
@@ -112,13 +112,13 @@ export default function AdminLayout() {
         </Sheet>
       </header>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-56 shrink-0 border-r border-border bg-card flex-col">
+      {/* Desktop Sidebar — fixed height, scrollable if nav overflows */}
+      <aside className="hidden lg:flex w-56 shrink-0 border-r border-border bg-card flex-col h-full overflow-y-auto">
         <SidebarContent />
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      {/* Main content — only this scrolls */}
+      <main className="flex-1 overflow-y-auto">
         <div className="container max-w-7xl mx-auto px-4 py-6">
           <Outlet />
         </div>

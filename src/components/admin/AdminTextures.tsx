@@ -55,15 +55,24 @@ export function AdminTextures() {
 
   const loadTextures = React.useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('rug_textures')
-      .select('*')
-      .order('display_order', { ascending: true });
-    if (error) {
-      toast({ title: 'Yüklenemedi', description: error.message, variant: 'destructive' });
-    } else {
-      setTextures(data || []);
+    const all: TextureRow[] = [];
+    const BATCH = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('rug_textures')
+        .select('*')
+        .order('display_order', { ascending: true })
+        .range(from, from + BATCH - 1);
+      if (error) {
+        toast({ title: 'Yüklenemedi', description: error.message, variant: 'destructive' });
+        break;
+      }
+      all.push(...(data ?? []));
+      if (!data || data.length < BATCH) break;
+      from += BATCH;
     }
+    setTextures(all);
     setLoading(false);
   }, [toast]);
 

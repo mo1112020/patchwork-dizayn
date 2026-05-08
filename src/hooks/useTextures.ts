@@ -84,23 +84,28 @@ function buildTextureFromRow(row: {
 }
 
 async function fetchTextures(): Promise<RugTexture[]> {
-  const { data, error } = await supabase
-    .from('rug_textures')
-    .select('id, name, code, image_path, hex, display_order, category')
-    .order('display_order', { ascending: true });
+  const all: RugTexture[] = [];
+  const BATCH = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('rug_textures')
+      .select('id, name, code, image_path, hex, display_order, category')
+      .order('display_order', { ascending: true })
+      .range(from, from + BATCH - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    all.push(...data.map(buildTextureFromRow));
+    if (data.length < BATCH) break;
+    from += BATCH;
+  }
 
-  if (error) throw error;
-  if (!data?.length) return [];
-
-  const textures = data.map(buildTextureFromRow);
-
-  // Preload thumbnail URLs — much smaller than full-size, faster on mobile
-  const toPreload = textures
+  const toPreload = all
     .filter((t) => t.thumbnailUrl && t.thumbnailUrl !== TEXTURE_PLACEHOLDER)
     .map((t) => ({ id: t.id, imageUrl: t.thumbnailUrl }));
   preloadBatched(toPreload);
 
-  return textures;
+  return all;
 }
 
 const QUERY_KEY = ['rug-textures'] as const;

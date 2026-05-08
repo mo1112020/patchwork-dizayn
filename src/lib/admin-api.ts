@@ -16,12 +16,12 @@ export async function adminGetMaxTextureCodeNum(): Promise<number> {
   const { data } = await supabase
     .from('rug_textures')
     .select('code')
-    .like('code', 'TX-%');
+    .like('code', 'TX-%')
+    .order('code', { ascending: false })
+    .limit(1);
   if (!data?.length) return 0;
-  return data.reduce((max, row) => {
-    const m = (row.code as string).match(/^TX-(\d+)$/);
-    return m ? Math.max(max, parseInt(m[1], 10)) : max;
-  }, 0);
+  const m = (data[0].code as string).match(/^TX-(\d+)$/);
+  return m ? parseInt(m[1], 10) : 0;
 }
 
 export async function adminCreateTexture(payload: {
