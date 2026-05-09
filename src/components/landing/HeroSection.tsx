@@ -14,14 +14,34 @@ export const HeroSection: React.FC = () => {
   const { settings } = useDesignerSettings();
   const heroImages = settings.hero_images ?? [];
   const [slideIndex, setSlideIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  // Reset failed set whenever the configured images change
+  useEffect(() => {
+    setFailedImages(new Set());
+    setSlideIndex(0);
+  }, [heroImages]);
+
+  const liveImages = heroImages.filter(src => !failedImages.has(src));
+
+  const markFailed = (src: string) => {
+    setFailedImages(prev => new Set([...prev, src]));
+  };
+
+  // Keep slideIndex in bounds if a live image is removed mid-session
+  useEffect(() => {
+    if (liveImages.length > 0 && slideIndex >= liveImages.length) {
+      setSlideIndex(0);
+    }
+  }, [liveImages.length, slideIndex]);
 
   useEffect(() => {
-    if (heroImages.length <= 1) return;
+    if (liveImages.length <= 1) return;
     const id = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % heroImages.length);
+      setSlideIndex((i) => (i + 1) % liveImages.length);
     }, HERO_SLIDE_DURATION_MS);
     return () => clearInterval(id);
-  }, [heroImages.length]);
+  }, [liveImages.length]);
 
   return (
     <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden">
@@ -125,14 +145,14 @@ export const HeroSection: React.FC = () => {
               onClick={() => navigate('/designer')}
               className="group relative w-full bg-card rounded-3xl border border-border shadow-2xl overflow-hidden text-left hover:border-primary/40 transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-background"
             >
-              {heroImages.length > 0 ? (
-                /* Admin hero images: sliding carousel – kept as requested */
+              {liveImages.length > 0 ? (
+                /* Admin hero images: sliding carousel */
                 <div className="aspect-[4/3] relative overflow-hidden rounded-3xl">
                   <div
                     className="flex h-full transition-transform duration-700 ease-in-out"
                     style={{ transform: `translateX(-${slideIndex * 100}%)` }}
                   >
-                    {heroImages.map((src, i) => (
+                    {liveImages.map((src, i) => (
                       <div key={src} className="w-full flex-shrink-0 h-full relative">
                         <img
                           src={src}
@@ -142,13 +162,14 @@ export const HeroSection: React.FC = () => {
                           loading={i === 0 ? 'eager' : 'lazy'}
                           decoding={i === 0 ? 'sync' : 'async'}
                           fetchPriority={i === 0 ? 'high' : 'low'}
+                          onError={() => markFailed(src)}
                         />
                       </div>
                     ))}
                   </div>
-                  {heroImages.length > 1 && (
+                  {liveImages.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                      {heroImages.map((_, i) => (
+                      {liveImages.map((_, i) => (
                         <span
                           key={i}
                           className={`block h-2 rounded-full transition-all duration-300 ${i === slideIndex ? 'w-6 bg-primary' : 'w-2 bg-foreground/20'}`}
