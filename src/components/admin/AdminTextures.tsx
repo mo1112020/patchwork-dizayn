@@ -52,6 +52,9 @@ export function AdminTextures() {
   const [saving, setSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(ALL);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const loadTextures = React.useCallback(async () => {
     setLoading(true);
@@ -195,6 +198,46 @@ export function AdminTextures() {
     setCurrentPage(1);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectPage = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      pagedTextures.forEach(t => next.add(t.id));
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredTextures.map(t => t.id)));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+    let lastError = '';
+    for (const id of selectedIds) {
+      const { error } = await adminDeleteTexture(id);
+      if (error) { failCount++; lastError = error; } else { successCount++; }
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    clearSelection();
+    if (successCount) toast({ title: `${successCount} doku silindi` });
+    if (failCount) toast({ title: `${failCount} doku silinemedi`, description: lastError, variant: 'destructive' });
+    loadTextures();
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+  };
+
   return (
     <>
       <Card>
@@ -237,12 +280,46 @@ export function AdminTextures() {
               </nav>
 
               <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={selectPage}>
+                    Sayfayı seç ({pagedTextures.length})
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={selectAll}>
+                    Tümünü seç ({filteredTextures.length})
+                  </Button>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <span className="text-xs text-muted-foreground">{selectedIds.size} seçildi</span>
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearSelection}>
+                        Seçimi temizle
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 text-xs gap-1 ml-auto"
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        <Trash2 className="w-3 h-3" /> {selectedIds.size} dokuyu sil
+                      </Button>
+                    </>
+                  )}
+                </div>
                 <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {pagedTextures.map((row) => (
                     <div
                       key={row.id}
-                      className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border p-4 bg-card"
+                      className={`group relative flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border p-4 bg-card transition-colors ${
+                        selectedIds.has(row.id) ? 'border-foreground bg-muted/40' : 'border-border'
+                      }`}
                     >
+                      <div className={`absolute top-2 left-2 z-10 transition-opacity ${selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(row.id)}
+                          onChange={() => toggleSelect(row.id)}
+                          className="w-4 h-4 cursor-pointer accent-foreground"
+                        />
+                      </div>
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                           {imageUrl(row.image_path) ? (
@@ -329,6 +406,22 @@ export function AdminTextures() {
         onAdd={handleAddMultiple}
         saving={saving}
       />
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedIds.size} dokuyu sil?</DialogTitle>
+            <DialogDescription>Bu işlem geri alınamaz.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)} disabled={bulkDeleting}>
+              İptal
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : `${selectedIds.size} dokuyu sil`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
