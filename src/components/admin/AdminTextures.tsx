@@ -196,6 +196,12 @@ export function AdminTextures() {
   const selectCategory = (name: string) => {
     setSelectedCategory(name);
     setCurrentPage(1);
+    clearSelection();
+  };
+
+  const goToPage = (p: number) => {
+    setCurrentPage(p);
+    clearSelection();
   };
 
   const toggleSelect = (id: string) => {
@@ -221,19 +227,21 @@ export function AdminTextures() {
   const clearSelection = () => setSelectedIds(new Set());
 
   const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) { setBulkDeleteOpen(false); return; }
     setBulkDeleting(true);
-    let successCount = 0;
-    let failCount = 0;
-    let lastError = '';
-    for (const id of selectedIds) {
-      const { error } = await adminDeleteTexture(id);
-      if (error) { failCount++; lastError = error; } else { successCount++; }
-    }
+    const results = await Promise.allSettled(
+      [...selectedIds].map(id => adminDeleteTexture(id))
+    );
+    const successCount = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error));
+    const lastError = failed.length > 0
+      ? (failed[0] as PromiseFulfilledResult<{ error: string }>).value?.error ?? 'Bilinmeyen hata'
+      : '';
     setBulkDeleting(false);
     setBulkDeleteOpen(false);
     clearSelection();
     if (successCount) toast({ title: `${successCount} doku silindi` });
-    if (failCount) toast({ title: `${failCount} doku silinemedi`, description: lastError, variant: 'destructive' });
+    if (failed.length) toast({ title: `${failed.length} doku silinemedi`, description: lastError, variant: 'destructive' });
     loadTextures();
     queryClient.invalidateQueries({ queryKey: QUERY_KEY });
   };
@@ -305,7 +313,9 @@ export function AdminTextures() {
                   )}
                 </div>
                 <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  {pagedTextures.map((row) => (
+                  {pagedTextures.map((row) => {
+                  const url = imageUrl(row.image_path);
+                  return (
                     <div
                       key={row.id}
                       className={`group relative flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border p-4 bg-card transition-colors ${
@@ -322,8 +332,8 @@ export function AdminTextures() {
                       </div>
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          {imageUrl(row.image_path) ? (
-                            <img src={imageUrl(row.image_path)!} alt={row.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          {url ? (
+                            <img src={url} alt={row.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <ImageIcon className="w-6 h-6 text-muted-foreground" />
@@ -364,7 +374,8 @@ export function AdminTextures() {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 {totalPages > 1 && (
@@ -373,17 +384,17 @@ export function AdminTextures() {
                       Sayfa {currentPage} / {totalPages} · {filteredTextures.length} doku
                     </span>
                     <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>«</Button>
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage((p) => p - 1)} disabled={currentPage === 1}>‹</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goToPage(1)} disabled={currentPage === 1}>«</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>‹</Button>
                       {(() => {
                         const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
                         const end = Math.min(totalPages, start + 4);
                         return Array.from({ length: end - start + 1 }, (_, i) => start + i).map((p) => (
-                          <Button key={p} variant={p === currentPage ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(p)}>{p}</Button>
+                          <Button key={p} variant={p === currentPage ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0" onClick={() => goToPage(p)}>{p}</Button>
                         ));
                       })()}
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage === totalPages}>›</Button>
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>»</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>›</Button>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>»</Button>
                     </div>
                   </div>
                 )}
