@@ -5,7 +5,7 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { Patch, ToolMode, DesignConstraints, DesignMetadata } from '@/types/design';
 import { CANVAS_GRID_SIZE, GRID_UNIT_SIZE } from '@/constants/designer-defaults';
 import type { RugTexture } from '@/types/design';
-import { textureImageGlobalCache } from '@/hooks/useTextures';
+import { textureImageGlobalCache, warmRugTextureThumbnail } from '@/hooks/useTextures';
 
 const DEFAULT_CANVAS_GRID = CANVAS_GRID_SIZE;
 const DEFAULT_GRID_UNIT = GRID_UNIT_SIZE;
@@ -184,69 +184,135 @@ export const DesignerCanvas = forwardRef(function DesignerCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [hoveredPatchId, setHoveredPatchId] = useState<string | null>(null);
-  const processedIdsRef = useRef<Set<string>>(new Set());
   const [textureImageCache, setTextureImageCache] = useState<Record<string, HTMLImageElement>>({});
+  const loadingThumbRef = useRef<Set<string>>(new Set());
+  const loadingFullRef = useRef<Set<string>>(new Set());
 
-  // Sync from global preloaded cache + load any missing images
+  const neededTextureIds = useMemo(
+    () => [...new Set(patches.map((p) => p.textureId).filter(Boolean))] as string[],
+    [patches]
+  );
+
+  const textureById = useMemo(() => {
+    const m = new Map<string, RugTexture>();
+    textures.forEach((t) => m.set(t.id, t));
+    return m;
+  }, [textures]);
+
+  /** Thumbnails from storage are 200×200; above this we treat the bitmap as already sharp enough. */
+  const THUMB_MAX_NATURAL = 320;
+
+  // Only load textures that appear on patches: small preview first, then full image in the background.
   useEffect(() => {
-    // 1. Pull already-preloaded images from global cache
-    const fromGlobal: Record<string, HTMLImageElement> = {};
-    let hasNew = false;
-    textures.forEach((tex) => {
-      const cached = textureImageGlobalCache.get(tex.id);
-      if (cached && !textureImageCache[tex.id]) {
-        fromGlobal[tex.id] = cached;
-        hasNew = true;
-        processedIdsRef.current.add(tex.id);
-      }
-    });
-    if (hasNew) {
-      setTextureImageCache((prev) => ({ ...prev, ...fromGlobal }));
+    if (!neededTextureIds.length) return;
+    let cancelled = false;
+
+    for (const id of loadingThumbRef.current) {
+      if (!neededTextureIds.includes(id)) loadingThumbRef.current.delete(id);
+    }
+    for (const id of loadingFullRef.current) {
+      if (!neededTextureIds.includes(id)) loadingFullRef.current.delete(id);
     }
 
-    // 2. Fallback: load any images not yet in either cache
-    textures.forEach((tex) => {
-      if (!tex.imageUrl || processedIdsRef.current.has(tex.id)) return;
+    const mergeFromGlobal = () => {
+      setTextureImageCache((prev) => {
+        let next = prev;
+        let changed = false;
+        for (const tid of neededTextureIds) {
+          const g = textureImageGlobalCache.get(tid);
+          if (g && prev[tid] !== g) {
+            if (!changed) {
+              next = { ...prev };
+              changed = true;
+            }
+            next[tid] = g;
+          }
+        }
+        return changed ? next : prev;
+      });
+    };
 
-      processedIdsRef.current.add(tex.id);
+    const startFullIfPreview = (tex: RugTexture, previewImg: HTMLImageElement) => {
+      if (!tex.imageUrl || tex.thumbnailUrl === tex.imageUrl) return;
+      if (previewImg.naturalWidth > THUMB_MAX_NATURAL && previewImg.naturalHeight > THUMB_MAX_NATURAL) return;
+      if (loadingFullRef.current.has(tex.id)) return;
+      loadingFullRef.current.add(tex.id);
+      const full = new window.Image();
+      full.crossOrigin = 'anonymous';
+      full.onload = () => {
+        loadingFullRef.current.delete(tex.id);
+        if (cancelled) return;
+        textureImageGlobalCache.set(tex.id, full);
+        setTextureImageCache((p) => ({ ...p, [tex.id]: full }));
+      };
+      full.onerror = () => {
+        loadingFullRef.current.delete(tex.id);
+      };
+      full.src = tex.imageUrl;
+    };
 
+    mergeFromGlobal();
+
+    for (const id of neededTextureIds) {
+      const tex = textureById.get(id);
+      if (!tex?.imageUrl) continue;
+
+      const cached = textureImageGlobalCache.get(id);
+      if (cached) {
+        startFullIfPreview(tex, cached);
+        continue;
+      }
+      if (loadingThumbRef.current.has(id)) continue;
+
+      const useThumbFirst = Boolean(tex.thumbnailUrl && tex.thumbnailUrl !== tex.imageUrl);
+      const firstUrl = useThumbFirst ? tex.thumbnailUrl! : tex.imageUrl;
+
+      loadingThumbRef.current.add(id);
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        textureImageGlobalCache.set(tex.id, img);
-        setTextureImageCache((latest) => ({ ...latest, [tex.id]: img }));
+        loadingThumbRef.current.delete(id);
+        if (cancelled) return;
+        textureImageGlobalCache.set(id, img);
+        setTextureImageCache((p) => ({ ...p, [id]: img }));
+        startFullIfPreview(tex, img);
       };
-      img.src = tex.imageUrl;
-    });
-  }, [textures]);
-
-  // Periodically check for newly preloaded images from global cache (e.g. slow network)
-  // NOTE: intentionally NOT depending on textureImageCache to avoid re-render loops
-  useEffect(() => {
-    if (!textures.length) return;
+      img.onerror = () => {
+        loadingThumbRef.current.delete(id);
+        if (useThumbFirst && tex.imageUrl) {
+          loadingThumbRef.current.add(id);
+          const fallback = new window.Image();
+          fallback.crossOrigin = 'anonymous';
+          fallback.onload = () => {
+            loadingThumbRef.current.delete(id);
+            if (cancelled) return;
+            textureImageGlobalCache.set(id, fallback);
+            setTextureImageCache((p) => ({ ...p, [id]: fallback }));
+          };
+          fallback.onerror = () => loadingThumbRef.current.delete(id);
+          fallback.src = tex.imageUrl;
+        }
+      };
+      img.src = firstUrl;
+    }
 
     const interval = setInterval(() => {
-      const updates: Record<string, HTMLImageElement> = {};
-      let hasNew = false;
-      textures.forEach((tex) => {
-        if (processedIdsRef.current.has(tex.id)) return; // already loaded locally
-        const cached = textureImageGlobalCache.get(tex.id);
-        if (cached) {
-          updates[tex.id] = cached;
-          hasNew = true;
-          processedIdsRef.current.add(tex.id);
-        }
-      });
-      if (hasNew) {
-        setTextureImageCache((prev) => ({ ...prev, ...updates }));
+      if (cancelled) return;
+      mergeFromGlobal();
+      for (const tid of neededTextureIds) {
+        const tex = textureById.get(tid);
+        const g = tex && textureImageGlobalCache.get(tid);
+        if (tex && g) startFullIfPreview(tex, g);
       }
-      // Auto-stop when ALL textures are loaded
-      if (processedIdsRef.current.size >= textures.length) {
-        clearInterval(interval);
-      }
-    }, 800);
-    return () => clearInterval(interval);
-  }, [textures]);
+    }, 200);
+    const stopInterval = setTimeout(() => clearInterval(interval), 12_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      clearTimeout(stopInterval);
+    };
+  }, [neededTextureIds, textureById]);
 
   // When user drops a texture elsewhere or cancels drag, clear overlay
   useEffect(() => {
@@ -779,6 +845,7 @@ export const DesignerCanvas = forwardRef(function DesignerCanvas({
     );
     if (patchAt) {
       const tex = textures.find((t) => t.id === data!.id);
+      if (tex) warmRugTextureThumbnail(tex);
       updatePatch(patchAt.id, { textureId: data.id, color: tex?.hex ?? data.hex ?? patchAt.color });
       onPatchSelect(patchAt.id);
     }

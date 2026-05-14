@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { RugTexture } from '@/types/design';
+import { warmRugTextureThumbnail } from '@/hooks/useTextures';
 import { ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRecentTextures } from '@/hooks/useRecentTextures';
 
@@ -123,6 +124,9 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [showAllRecent, setShowAllRecent] = useState(false);
+
+  const RECENT_VISIBLE = 6;
   const { recentIds, addRecent } = useRecentTextures();
 
   const categories = useMemo(() => {
@@ -147,6 +151,7 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
   );
 
   const handleSelect = (tex: RugTexture) => {
+    warmRugTextureThumbnail(tex);
     addRecent(tex.id);
     onTextureSelect(tex);
   };
@@ -161,6 +166,7 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent, texture: RugTexture) => {
+    warmRugTextureThumbnail(texture);
     e.dataTransfer.setData(
       'application/x-patchwork-texture',
       JSON.stringify({ id: texture.id, name: texture.name, code: texture.code, imageUrl: texture.imageUrl, hex: texture.hex })
@@ -171,6 +177,7 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
   };
 
   const handleHover = (tex: RugTexture, e: React.MouseEvent<HTMLButtonElement>) => {
+    warmRugTextureThumbnail(tex);
     const rect = e.currentTarget.getBoundingClientRect();
     setPreview({ tex, x: rect.right, y: rect.top + rect.height / 2 });
   };
@@ -232,10 +239,25 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
               <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                 Son Kullanılanlar
               </h4>
-              <span className="text-[10px] text-muted-foreground">{recentTextures.length} doku</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">{recentTextures.length} doku</span>
+                {recentTextures.length > RECENT_VISIBLE && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllRecent(v => !v)}
+                    className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors touch-manipulation min-h-[28px] px-1.5 rounded-md hover:bg-muted/60"
+                  >
+                    {showAllRecent ? (
+                      <><ChevronUp className="w-3 h-3" /><span className="hidden sm:inline">Gizle</span></>
+                    ) : (
+                      <><span>+{recentTextures.length - RECENT_VISIBLE}</span><ChevronDown className="w-3 h-3" /></>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {recentTextures.map((tex) => (
+            <div className="flex flex-wrap gap-1">
+              {(showAllRecent ? recentTextures : recentTextures.slice(0, RECENT_VISIBLE)).map((tex) => (
                 <TextureThumb
                   key={tex.id}
                   tex={tex}
@@ -289,7 +311,7 @@ export const TexturePanel: React.FC<TexturePanelProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {visibleItems.map((tex, idx) => (
                   <TextureThumb
                     key={tex.id}

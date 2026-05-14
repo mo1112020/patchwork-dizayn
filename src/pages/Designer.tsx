@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useDesigner } from '@/hooks/useDesigner';
-import { useTextures } from '@/hooks/useTextures';
+import { useTextures, warmRugTextureThumbnail } from '@/hooks/useTextures';
 import { useDesignerSettings } from '@/hooks/useDesignerSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useDesigns } from '@/hooks/useDesigns';
@@ -60,6 +60,8 @@ const MobileTextureTray = React.memo(function MobileTextureTray({
   patchInfo: string;
 }) {
   const { t } = useLanguage();
+  const [showAllColors, setShowAllColors] = useState(false);
+  const visibleColors = showAllColors ? threadColors : threadColors.slice(0, 10);
   return (
     <div className="bg-card/98 backdrop-blur-2xl border border-border/60 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] rounded-t-3xl px-4 pt-3 pb-8 flex flex-col gap-3 overflow-hidden">
       {/* Drag handle */}
@@ -98,6 +100,8 @@ const MobileTextureTray = React.memo(function MobileTextureTray({
           return (
             <button
               key={tex.id}
+              type="button"
+              onPointerEnter={() => warmRugTextureThumbnail(tex)}
               onClick={() => onTextureSelect(tex)}
               className={cn(
                 "relative aspect-square w-[4.25rem] h-[4.25rem] rounded-2xl border-2 overflow-hidden transition-all flex-shrink-0 shrink-0 snap-start active:scale-90 touch-manipulation",
@@ -106,7 +110,7 @@ const MobileTextureTray = React.memo(function MobileTextureTray({
                   : 'border-border/50 hover:border-primary/40'
               )}
             >
-              <img src={tex.imageUrl} alt={tex.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
+              <img src={tex.thumbnailUrl} alt={tex.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-3 pb-0.5 px-1">
                 <p className="text-[7px] text-white font-bold truncate leading-none uppercase tracking-wide">{tex.name}</p>
               </div>
@@ -123,10 +127,10 @@ const MobileTextureTray = React.memo(function MobileTextureTray({
       </div>
 
       {/* Thread Colors */}
-      <div className="pt-2 border-t border-border/40 flex items-center gap-3">
+      <div className="pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap">
         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider shrink-0">{t('designer.threadColorLabel')}</p>
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide no-scrollbar">
-          {threadColors.map((code) => {
+        <div className="flex items-center gap-2 flex-wrap">
+          {visibleColors.map((code) => {
             const hex = `#${code}`;
             const isSelected = currentThreadColor === code;
             return (
@@ -139,6 +143,15 @@ const MobileTextureTray = React.memo(function MobileTextureTray({
               />
             );
           })}
+          {threadColors.length > 10 && (
+            <button
+              type="button"
+              onClick={() => setShowAllColors(v => !v)}
+              className="text-[9px] font-bold text-primary underline underline-offset-2 shrink-0 touch-manipulation"
+            >
+              {showAllColors ? t('designer.showLess') : `+${threadColors.length - 10}`}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -190,6 +203,7 @@ const Designer: React.FC = () => {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isLoadingDesign, setIsLoadingDesign] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showAllThreadColors, setShowAllThreadColors] = useState(false);
   const [isDraggingTexture, setIsDraggingTexture] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMobileTextures, setShowMobileTextures] = useState(false);
@@ -254,6 +268,7 @@ const Designer: React.FC = () => {
 
   // Stable callbacks for the memoized MobileTextureTray
   const handleTrayTextureSelect = useCallback((tex: RugTexture) => {
+    warmRugTextureThumbnail(tex);
     if (selectedPatchId && selectedPatch) {
       updatePatch(selectedPatchId, { textureId: tex.id, color: tex.hex ?? selectedPatch.color });
       // Dismiss tray after selecting — user taps next patch to bring it back up
@@ -292,9 +307,15 @@ const Designer: React.FC = () => {
           }
         })
         .finally(() => setIsLoadingDesign(false));
-    } else if (isAuthenticated && hasPendingDesign()) {
-      // User just logged in and has a pending design
-      setShowRestoreDialog(true);
+    } else if (hasPendingDesign()) {
+      if (isAuthenticated) {
+        // User just logged in and has a pending design
+        setShowRestoreDialog(true);
+      } else {
+        // User navigated back from auth without logging in — restore their design silently
+        const pending = getPendingDesign();
+        if (pending) setDesign(pending);
+      }
     } else if (design.patches.length === 0 && !isModified) {
       setShowSetupDialog(true);
     }
@@ -510,7 +531,9 @@ const Designer: React.FC = () => {
             <div className="pt-4 border-t border-border space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('designer.threadColorLabel')}</p>
               <div className="flex items-center gap-2 flex-wrap">
-                {(adminSettings.thread_colors?.length ? adminSettings.thread_colors : ['E8E4DC', '2C2C2C', '8B7355', 'F5F5DC', '4A4A4A']).map((code) => {
+                {(adminSettings.thread_colors?.length ? adminSettings.thread_colors : ['E8E4DC', '2C2C2C', '8B7355', 'F5F5DC', '4A4A4A'])
+                  .slice(0, showAllThreadColors ? undefined : 10)
+                  .map((code) => {
                   const hex = `#${code}`;
                   const currentHex = (design.metadata.threadColor ?? '#E8E4DC').replace(/^#/, '').toUpperCase();
                   const isSelected = currentHex === code;
@@ -525,6 +548,15 @@ const Designer: React.FC = () => {
                     />
                   );
                 })}
+                {(adminSettings.thread_colors?.length ?? 0) > 10 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllThreadColors(v => !v)}
+                    className="text-xs font-semibold text-primary underline underline-offset-2 shrink-0"
+                  >
+                    {showAllThreadColors ? t('designer.showLess') : `+${(adminSettings.thread_colors?.length ?? 0) - 10}`}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -746,7 +778,9 @@ const Designer: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-border space-y-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('designer.threadColorLabel')}</p>
               <div className="flex items-center gap-3 flex-wrap">
-                {(adminSettings.thread_colors?.length ? adminSettings.thread_colors : ['E8E4DC', '2C2C2C', '8B7355', 'F5F5DC', '4A4A4A']).map((code) => {
+                {(adminSettings.thread_colors?.length ? adminSettings.thread_colors : ['E8E4DC', '2C2C2C', '8B7355', 'F5F5DC', '4A4A4A'])
+                  .slice(0, showAllThreadColors ? undefined : 10)
+                  .map((code) => {
                   const hex = `#${code}`;
                   const currentHex = (design.metadata.threadColor ?? '#E8E4DC').replace(/^#/, '').toUpperCase();
                   const isSelected = currentHex === code;
@@ -760,6 +794,15 @@ const Designer: React.FC = () => {
                     />
                   );
                 })}
+                {(adminSettings.thread_colors?.length ?? 0) > 10 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllThreadColors(v => !v)}
+                    className="text-sm font-semibold text-primary underline underline-offset-2 shrink-0"
+                  >
+                    {showAllThreadColors ? t('designer.showLess') : `+${(adminSettings.thread_colors?.length ?? 0) - 10}`}
+                  </button>
+                )}
               </div>
             </div>
           </div>

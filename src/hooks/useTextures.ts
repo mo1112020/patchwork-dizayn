@@ -13,8 +13,6 @@ const BUCKET = 'rug-textures';
 export const textureImageGlobalCache = new Map<string, HTMLImageElement>();
 const preloadingIds = new Set<string>();
 
-const PRELOAD_BATCH_SIZE = 6;
-
 function preloadImage(id: string, url: string): Promise<void> {
   if (textureImageGlobalCache.has(id) || preloadingIds.has(id)) return Promise.resolve();
   preloadingIds.add(id);
@@ -49,11 +47,11 @@ function preloadImage(id: string, url: string): Promise<void> {
   });
 }
 
-async function preloadBatched(textures: { id: string; imageUrl: string }[]) {
-  for (let i = 0; i < textures.length; i += PRELOAD_BATCH_SIZE) {
-    const batch = textures.slice(i, i + PRELOAD_BATCH_SIZE);
-    await Promise.all(batch.map((t) => preloadImage(t.id, t.imageUrl)));
-  }
+/** Start thumbnail decode into the global cache (used by list hover + designer). */
+export function warmRugTextureThumbnail(tex: RugTexture): void {
+  const url = tex.thumbnailUrl && tex.thumbnailUrl !== tex.imageUrl ? tex.thumbnailUrl : tex.imageUrl;
+  if (!url) return;
+  void preloadImage(tex.id, url);
 }
 
 function buildTextureFromRow(row: {
@@ -103,7 +101,7 @@ async function fetchTextures(): Promise<RugTexture[]> {
   const toPreload = all
     .filter((t) => t.thumbnailUrl && t.thumbnailUrl !== TEXTURE_PLACEHOLDER)
     .map((t) => ({ id: t.id, imageUrl: t.thumbnailUrl }));
-  preloadBatched(toPreload);
+  void Promise.all(toPreload.map((t) => preloadImage(t.id, t.imageUrl)));
 
   return all;
 }
